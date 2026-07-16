@@ -4,21 +4,36 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
-import type { User } from '@supabase/supabase-js'
+import type { SupabaseClient, User } from '@supabase/supabase-js'
+
+const hasSupabaseEnv =
+  Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL) &&
+  Boolean(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
 
 export function Header() {
   const [user, setUser] = useState<User | null>(null)
-  const supabase = createClient()
 
   useEffect(() => {
+    if (!hasSupabaseEnv) {
+      return
+    }
+
+    const supabase = createClient()
+
     supabase.auth.getUser().then(({ data }) => setUser(data.user))
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null)
     })
+
     return () => listener.subscription.unsubscribe()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleSignOut() {
+    if (!hasSupabaseEnv) {
+      return
+    }
+
+    const supabase: SupabaseClient = createClient()
     await supabase.auth.signOut()
     window.location.href = '/'
   }
